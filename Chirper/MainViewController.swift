@@ -34,10 +34,11 @@ enum State{
   case populated([Recording])
   case empty
   case error(Error)
+  case paging([Recording], next:Int)
   
   var currentRecordings: [Recording]{
     switch self {
-    case .populated(let recordings):
+    case .populated(let recordings), .paging(let recordings, _):
       return recordings
     default:
       return []
@@ -109,7 +110,11 @@ class MainViewController: UIViewController {
       return
     }
     
-    state = .populated(newRecodings)
+    if response.hasMorePages {
+      state = .paging(newRecodings, next: response.nextPage)
+    } else{
+      state = .populated(newRecodings)
+    }
   }
   
   // MARK: - View Configuration
@@ -148,7 +153,7 @@ class MainViewController: UIViewController {
   
   func setFooterView(){
     switch state {
-    case .loading:
+    case .loading, .paging:
       tableView.tableFooterView = loadingView
     case .error(let error):
       errorLabel.text = error.localizedDescription
