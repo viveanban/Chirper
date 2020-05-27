@@ -28,6 +28,14 @@
 
 import UIKit
 
+// States were not clearly defined in the starter project; these enums will help clarify the states
+enum State{
+  case loading
+  case populated([Recording])
+  case empty
+  case error([Error])
+}
+
 class MainViewController: UIViewController {
   
   @IBOutlet weak var tableView: UITableView!
@@ -42,7 +50,8 @@ class MainViewController: UIViewController {
   let darkGreen = UIColor(red: 11/255, green: 86/255, blue: 14/255, alpha: 1)
   var recordings: [Recording]?
   var error: Error?
-  var isLoading = false
+  
+  var state = State.loading
   
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -62,8 +71,9 @@ class MainViewController: UIViewController {
   // MARK: - Loading recordings
   
   @objc func loadRecordings() {
-    isLoading = true
-    tableView.tableFooterView = loadingView
+    state = .loading
+    setFooterView()
+    
     recordings = []
     tableView.reloadData()
     
@@ -75,11 +85,10 @@ class MainViewController: UIViewController {
       }
       
       self.searchController.searchBar.endEditing(true)
-      self.isLoading = false
       self.update(response: response)
     }
   }
-
+  
   func update(response: RecordingsResult) {
     if let recordings = response.recordings, !recordings.isEmpty {
       tableView.tableFooterView = nil
@@ -130,6 +139,15 @@ class MainViewController: UIViewController {
     tableView.register(nib, forCellReuseIdentifier: BirdSoundTableViewCell.ReuseIdentifier)
   }
   
+  
+  func setFooterView(){
+    switch state {
+    case .loading:
+      tableView.tableFooterView = loadingView
+    default:
+      break
+    }
+  }
 }
 
 // MARK: -

@@ -101,7 +101,7 @@
                     <viewLayoutGuide key="safeArea" id="Ob2-av-aiX"/>
                 </view>
             </objects>
-            <point key="canvasLocation" x="1386.4000000000001" y="66.11694152923539"/>
+            <point key="canvasLocation" x="1889" y="66"/>
         </scene>
         <!--Navigation Controller-->
         <scene sceneID="aD5-pF-FT1">
