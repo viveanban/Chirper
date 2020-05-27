@@ -58,7 +58,12 @@ class MainViewController: UIViewController {
   let networkingService = NetworkingService()
   let darkGreen = UIColor(red: 11/255, green: 86/255, blue: 14/255, alpha: 1)
   
-  var state = State.loading
+  var state = State.loading {
+    didSet {
+      setFooterView()
+      tableView.reloadData()
+    }
+  }
   
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -78,7 +83,7 @@ class MainViewController: UIViewController {
   // MARK: - Loading recordings
   
   @objc func loadRecordings() {
-    updateState(to: .loading)
+    state = .loading
     
     let query = searchController.searchBar.text
     networkingService.fetchRecordings(matching: query, page: 1) { [weak self] response in
@@ -92,25 +97,19 @@ class MainViewController: UIViewController {
     }
   }
   
-  fileprivate func updateState(to: State) {
-    state = to
-    setFooterView()
-    tableView.reloadData()
-  }
-  
   func update(response: RecordingsResult) {
     
     if let error = response.error{
-      updateState(to: .error(error))
+      state = .error(error)
       return
     }
     
     guard let newRecodings = response.recordings, !newRecodings.isEmpty else {
-      updateState(to: .empty)
+      state = .empty
       return
     }
     
-    updateState(to: .populated(newRecodings))
+    state = .populated(newRecodings)
   }
   
   // MARK: - View Configuration
