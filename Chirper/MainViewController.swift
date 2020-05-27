@@ -34,6 +34,15 @@ enum State{
   case populated([Recording])
   case empty
   case error(Error)
+  
+  var currentRecordings: [Recording]{
+    switch self {
+    case .populated(let recordings):
+      return recordings
+    default:
+      return []
+    }
+  }
 }
 
 class MainViewController: UIViewController {
@@ -48,7 +57,6 @@ class MainViewController: UIViewController {
   let searchController = UISearchController(searchResultsController: nil)
   let networkingService = NetworkingService()
   let darkGreen = UIColor(red: 11/255, green: 86/255, blue: 14/255, alpha: 1)
-  var recordings: [Recording]?
   
   var state = State.loading
   
@@ -70,11 +78,7 @@ class MainViewController: UIViewController {
   // MARK: - Loading recordings
   
   @objc func loadRecordings() {
-    state = .loading
-    setFooterView()
-    
-    recordings = []
-    tableView.reloadData()
+    updateState(to: .loading)
     
     let query = searchController.searchBar.text
     networkingService.fetchRecordings(matching: query, page: 1) { [weak self] response in
@@ -88,20 +92,25 @@ class MainViewController: UIViewController {
     }
   }
   
+  fileprivate func updateState(to: State) {
+    state = to
+    setFooterView()
+    tableView.reloadData()
+  }
+  
   func update(response: RecordingsResult) {
-    if let recordings = response.recordings, !recordings.isEmpty {
-      tableView.tableFooterView = nil
-    } else if let error = response.error {
-      state = .error(error)
-      setFooterView()
-      tableView.reloadData()
+    
+    if let error = response.error{
+      updateState(to: .error(error))
       return
-    } else {
-      tableView.tableFooterView = emptyView
     }
     
-    recordings = response.recordings
-    tableView.reloadData()
+    guard let newRecodings = response.recordings, !newRecodings.isEmpty else {
+      updateState(to: .empty)
+      return
+    }
+    
+    updateState(to: .populated(newRecodings))
   }
   
   // MARK: - View Configuration
@@ -145,8 +154,10 @@ class MainViewController: UIViewController {
     case .error(let error):
       errorLabel.text = error.localizedDescription
       tableView.tableFooterView = errorView
-    default:
-      break
+    case .empty:
+      tableView.tableFooterView = emptyView
+    case .populated:
+      tableView.tableFooterView = nil
     }
   }
 }
@@ -173,7 +184,7 @@ extension MainViewController: UITableViewDataSource {
   
   func tableView(_ tableView: UITableView,
                  numberOfRowsInSection section: Int) -> Int {
-    return recordings?.count ?? 0
+    return state.currentRecordings.count
   }
   
   func tableView(_ tableView: UITableView,
@@ -185,10 +196,7 @@ extension MainViewController: UITableViewDataSource {
         return UITableViewCell()
     }
     
-    if let recordings = recordings {
-      cell.load(recording: recordings[indexPath.row])
-    }
-    
+    cell.load(recording: state.currentRecordings[indexPath.row])
     return cell
   }
 }
