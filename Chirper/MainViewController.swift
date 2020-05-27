@@ -85,17 +85,7 @@ class MainViewController: UIViewController {
   
   @objc func loadRecordings() {
     state = .loading
-    
-    let query = searchController.searchBar.text
-    networkingService.fetchRecordings(matching: query, page: 1) { [weak self] response in
-      
-      guard let `self` = self else {
-        return
-      }
-      
-      self.searchController.searchBar.endEditing(true)
-      self.update(response: response)
-    }
+    loadPage(1)
   }
   
   func update(response: RecordingsResult) {
@@ -109,11 +99,13 @@ class MainViewController: UIViewController {
       state = .empty
       return
     }
+    var allRecordings = state.currentRecordings
+    allRecordings.append(contentsOf: newRecodings)
     
     if response.hasMorePages {
-      state = .paging(newRecodings, next: response.nextPage)
+      state = .paging(allRecordings, next: response.nextPage)
     } else{
-      state = .populated(newRecodings)
+      state = .populated(allRecordings)
     }
   }
   
@@ -164,6 +156,20 @@ class MainViewController: UIViewController {
       tableView.tableFooterView = nil
     }
   }
+  
+  func loadPage(_ page: Int) {
+    let query = searchController.searchBar.text
+    networkingService.fetchRecordings(matching: query, page: page) { [weak self] response in
+      
+      guard let `self` = self else {
+        return
+      }
+      
+      self.searchController.searchBar.endEditing(true)
+      self.update(response: response)
+    }
+
+  }
 }
 
 // MARK: -
@@ -201,6 +207,12 @@ extension MainViewController: UITableViewDataSource {
     }
     
     cell.load(recording: state.currentRecordings[indexPath.row])
+    
+    if case .paging(_, let nextPage) = state,
+      indexPath.row == state.currentRecordings.count - 1 {
+      loadPage(nextPage)
+    }
+
     return cell
   }
 }
